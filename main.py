@@ -1,12 +1,11 @@
 # Islamic Scholar AI - FastAPI Backend
-# Simple deployment-ready version
+# FIXED VERSION - Compatible with OpenAI 1.0+
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import openai
+from openai import OpenAI
 import os
-from typing import Optional, List, Dict
+from typing import List, Dict
 import re
 
 app = FastAPI(title="Islamic Scholar AI API")
@@ -14,29 +13,28 @@ app = FastAPI(title="Islamic Scholar AI API")
 # CORS - Allow website to connect
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# OpenAI API Key from environment variable
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Initialize OpenAI client (NEW SYNTAX)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 @app.get("/")
 async def root():
     return {
         "message": "Islamic Scholar AI API",
         "version": "1.0.0",
-        "status": "running",
-        "docs": "/docs"
+        "status": "running"
     }
 
 @app.get("/health")
 async def health_check():
     return {
         "status": "healthy",
-        "openai_configured": bool(openai.api_key)
+        "openai_configured": bool(os.getenv("OPENAI_API_KEY"))
     }
 
 @app.get("/api/rag/ask")
@@ -46,11 +44,12 @@ async def ask_question(q: str):
     if not q or len(q.strip()) < 3:
         raise HTTPException(status_code=400, detail="Question must be at least 3 characters")
     
-    if not openai.api_key:
+    if not os.getenv("OPENAI_API_KEY"):
         raise HTTPException(status_code=500, detail="OpenAI API key not configured")
     
     try:
-        response = openai.ChatCompletion.create(
+        # NEW OpenAI 1.0+ syntax
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[
                 {
